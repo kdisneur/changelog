@@ -1,0 +1,44 @@
+#! /usr/bin/env bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+_gitRepository="kdisneur/changelog";
+_scriptName="changelog";
+_projectRoot=$(cd $(dirname $0)/..; pwd);
+_releaseFolder=${_projectRoot}/releases;
+_releaseVersion=$(cat ${_projectRoot}/VERSION);
+_releaseArchiveName=${_scriptName}-${_releaseVersion}.tgz;
+_releaseVersionPath=${_releaseFolder}/${_releaseArchiveName};
+
+generateBrewFormula() {
+  local version=${1};
+  local checksum=${2};
+
+cat <<EOF
+class Environment < Formula
+  desc "Generate changelog based on Git history"
+  homepage "https://github.com/${_gitRepository}"
+  url "https://github.com/${_gitRepository}/releases/download/${version}/${_releaseArchiveName}"
+  sha256 "${checksum}"
+
+  def install
+    bin.install "${_scriptName}"
+  end
+end
+EOF
+}
+
+[ ! -d ${_releaseFolder} ] && mkdir ${_releaseFolder};
+
+tar -C src -f ${_releaseVersionPath} -cz ${_scriptName};
+
+_checksum=$(shasum -a 256 ${_releaseVersionPath} | cut -f1 -d' ');
+
+echo "# Generated Brew Formula:"
+echo "$(generateBrewFormula ${_releaseVersion} ${_checksum})"
+echo "---"
+echo "# Release summary";
+echo "Path:     ${_releaseVersionPath}";
+echo "Checksum: ${_checksum}";
