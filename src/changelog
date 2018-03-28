@@ -1,0 +1,219 @@
+#! /usr/bin/env bash
+
+exec 4>/dev/null;
+
+_scriptName=$(basename $0);
+_shouldBeExecuted=$([ "${BASH_SOURCE[0]}" = "${0}" ] && echo "true" || echo "false");
+_configPath=${CHANGELOG_CONFIG_PATH:-${HOME}/.config/changelog};
+
+_build_changelog() {
+  local repositoryName=${1};
+  shift;
+  local data=("$@");
+
+  for line in "${data[@]}"; do
+    pullRequestNumber=$(cut -f1 -d' ' <<< ${line});
+    pullRequestTitle=$(cut -f2- -d' ' <<< ${line});
+
+    echo "- ${pullRequestTitle} ([#${pullRequestNumber}])"
+  done
+
+  echo
+
+  for line in "${data[@]}"; do
+    pullRequestNumber=$(cut -f1 -d' ' <<< ${line});
+    echo "[#${pullRequestNumber}]: https://github.com/${repositoryName}/pull/${pullRequestNumber}"
+  done
+}
+
+_ensureGitHubTokenIsAvailable() {
+  local gitHubToken=${1:-};
+
+  if [ -z ${gitHubToken} ]; then
+    _errorWithUsage "GitHub token is not available. Please update your configuration";
+  fi
+}
+
+_error() {
+  local withUsage="false";
+
+  if [ "${1}" = "true" ]; then
+    withUsage="true";
+    shift;
+  elif [ "${1}" = "false" ]; then
+    withUsage="false";
+    shift;
+  fi
+
+  while [ ${#} -gt 0 ]; do
+    local message=${1};
+
+    shift;
+
+    >&2 echo "${message}";
+  done
+
+  if [ "${withUsage}" = "true" ]; then
+    >&2 echo "";
+    >&2 echo "$(_usage)";
+  fi
+
+  exit 1;
+}
+
+_errorWithUsage() {
+  _error "true" "${@}";
+}
+
+_fetchPullRequestData() {
+  local gitHubToken=${1};
+  local repository=${2};
+
+  shift 2;
+
+  for pullRequestNumber in ${*}; do
+    title=$(_fetchPullRequestTitleFromGitHub ${gitHubToken} ${repository} ${pullRequestNumber});
+
+    echo "${pullRequestNumber} ${title}";
+  done
+}
+
+_filterOnPullRequests() {
+  local start=${1};
+  local end=${2};
+
+  git log --oneline ${end}...${start} \
+    | grep "Merge pull request" \
+    | grep -v "release/v" \
+    | sed -E 's/[^#]+#([0-9]+).*/\1/';
+}
+
+_fetchPullRequestTitleFromGitHub() {
+  local gitHubToken=${1};
+  local repository=${2};
+  local pullRequestNumber=${3};
+  local pullRequestURL="https://api.github.com/repos/${repository}/pulls/${pullRequestNumber}";
+
+  curl -H "Authorization: token ${gitHubToken}" ${pullRequestURL} 2> /dev/null \
+    | grep '"title": ' \
+    | sed -E "s/[ ]*\"title\":[ ]+\"(.*)\",/\1/";
+}
+
+_findGitHubRepositoryName() {
+  local repositoryName=${1:-};
+
+  if [ -z ${repositoryName} ]; then
+    _findGitHubRepositoryNameFromGit;
+  else
+    echo ${repositoryName};
+  fi
+}
+
+
+_findGitHubRepositoryNameFromGit() {
+  local remoteCount=$(git remote show | wc -l | tr -d " ");
+
+  if [ ${remoteCount} -ne 1 ]; then
+    _errorWithUsage "We can't automatically find a remote URL: ${remoteCount} found." \
+                    "You will have to set the repository manually."
+  fi
+
+  git remote show \
+    | xargs git remote get-url \
+    | sed -E 's#.*:([^\.]+)(\.git)?#\1#';
+}
+
+_readConfig() {
+  local file=${1};
+  local key=${2};
+  local defaultValue=${3:-};
+
+  if [ ! -f ${file} ]; then
+    _errorWithUsage "Config file not found."
+  fi
+
+  local value=$(awk -F= "\$1 ~ /^[ ]*${key}[ ]*$/ { result = \$2; \
+                                                     for(i = 3; i <= NF; i++) result = result \"=\" \$i;
+                                                     print result \
+                                                  }" ${file});
+
+  if [ -z "${value}" ]; then
+    echo ${defaultValue};
+  else
+    echo ${value};
+  fi
+}
+
+_usage() {
+cat <<EOF
+Usage: ${_scriptName} [-d|-h] <from-ref> [<repository-name [<end-ref>]]
+
+Flags:
+  -d           Debug mode
+  -h           Display this usage text
+
+Environment Variables:
+  CHANGELOG_CONFIG_PATH:    Path where all the configuration is stored. Configuration contains
+                            only one key for the moment: \`github.token = <token>\`
+                            Currently set to "${_configPath}"
+  CHANGELOG_DEFAULT_BRANCH: Default Git reference used to build the Changelog.
+
+Arguments:
+  from-ref:         Git references used as a starting point to build the Changelog
+  repository-name:  By default, tries to get the remote url defined in Git config
+  end-ref:          Reference branches to find merges from. If not set, it fallbacks
+                    to the CHANGELOG_DEFAULT_BRANCH environment variables and, as a
+                    last fallback, "develop"
+
+Example:
+  # Build a changelog with every merged Pull Request from v1.5.0
+  ${_scriptName} v1.5.0
+  # Build a changelog with every merged Pull Request from v1.5.0 fetching Pull Requests from
+  # johndoe/acme_corp
+  ${_scriptName} v1.5.0 johndoe/acme_corp
+  # Build a changelog with every merged Pull Request from v1.5.0 fetching Pull Requests from
+  # johndoe/acme_corp and using master as a reference branch
+  ${_scriptName} v1.5.0 johndoe/acme_corp master
+EOF
+}
+
+if [ ${_shouldBeExecuted} = "true" ]; then
+  set -o errexit;
+  set -o nounset;
+  set -o pipefail;
+
+  OPTIND=1;
+  while getopts "d?h?" option; do
+    case "${option}" in
+      "d")
+        exec 4>&1;
+        set -o xtrace;
+        ;;
+      "h")
+        echo "$(_usage)";
+        exit 0;
+        ;;
+   esac
+  done
+
+  shift $((OPTIND-1));
+
+  _startingGitRef=${1:-};
+  shift || true;
+  _gitHubRepository=${2:-};
+  shift || true;
+  _endingGitRef=${3:-${CHANGELOG_DEFAULT_BRANCH:-"develop"}};
+  shift || true;
+
+  _gitHubToken=$(_readConfig ${_configPath} github.token);
+  _ensureGitHubTokenIsAvailable ${_gitHubToken};
+  _gitHubRepository=$(_findGitHubRepositoryName ${_gitHubRepository});
+  _pullRequests=$(_filterOnPullRequests ${_startingGitRef} ${_endingGitRef});
+
+  _pullRequestsData=();
+  while IFS= read -r line; do
+    _pullRequestsData+=("${line}");
+  done < <(_fetchPullRequestData ${_gitHubToken} ${_gitHubRepository} "${_pullRequests}");
+
+  _build_changelog ${_gitHubRepository} "${_pullRequestsData[@]}";
+fi
