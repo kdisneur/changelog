@@ -11,11 +11,11 @@ Example of output from [Bamboo SMTP](https://github.com/fewlinesco/bamboo_smtp):
 - Make the hostname (FQDN) configurable ([#74])
 - Update Elixir, OTP and all deps to latest versions available ([#69])
 
-[#79]: https://github.com/fewlinesco/bamboo_smtp/pull/79
 [#35]: https://github.com/fewlinesco/bamboo_smtp/pull/35
-[#75]: https://github.com/fewlinesco/bamboo_smtp/pull/75
-[#74]: https://github.com/fewlinesco/bamboo_smtp/pull/74
 [#69]: https://github.com/fewlinesco/bamboo_smtp/pull/69
+[#74]: https://github.com/fewlinesco/bamboo_smtp/pull/74
+[#75]: https://github.com/fewlinesco/bamboo_smtp/pull/75
+[#79]: https://github.com/fewlinesco/bamboo_smtp/pull/79
 ```
 
 ## Usage
