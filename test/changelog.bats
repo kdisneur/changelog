@@ -8,11 +8,9 @@ setup() {
 @test "_build_changelog" {
   local pullRequests=("12 A small issue" "1337 Another issue solved" "42 Description of an issue")
 
-	run _build_changelog "johndoe/acme_corp" "${pullRequests[@]}"
+  run _build_changelog "johndoe/acme_corp" "${pullRequests[@]}"
 
-	[ ${status} -eq 0 ]
-
-  echo $output
+  [ ${status} -eq 0 ]
 
   [ ${lines[0]} = "- A small issue ([#12])" ]
   [ ${lines[1]} = "- Another issue solved ([#1337])" ]
