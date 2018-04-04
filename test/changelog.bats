@@ -6,16 +6,20 @@ setup() {
 }
 
 @test "_build_changelog" {
-  local pullRequests=("42 Description of an issue" "1337 Another issue solved")
+  local pullRequests=("12 A small issue" "1337 Another issue solved" "42 Description of an issue")
 
 	run _build_changelog "johndoe/acme_corp" "${pullRequests[@]}"
 
 	[ ${status} -eq 0 ]
 
-  [ ${lines[0]} = "- Description of an issue ([#42])" ]
+  echo $output
+
+  [ ${lines[0]} = "- A small issue ([#12])" ]
   [ ${lines[1]} = "- Another issue solved ([#1337])" ]
-  [ ${lines[2]} = "[#42]: https://github.com/johndoe/acme_corp/pull/42" ]
-  [ ${lines[3]} = "[#1337]: https://github.com/johndoe/acme_corp/pull/1337" ]
+  [ ${lines[2]} = "- Description of an issue ([#42])" ]
+  [ ${lines[3]} = "[#12]: https://github.com/johndoe/acme_corp/pull/12" ]
+  [ ${lines[4]} = "[#42]: https://github.com/johndoe/acme_corp/pull/42" ]
+  [ ${lines[5]} = "[#1337]: https://github.com/johndoe/acme_corp/pull/1337" ]
 }
 
 @test "_ensureGitHubTokenIsAvailable: when token is not" {

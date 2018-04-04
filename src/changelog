@@ -20,8 +20,7 @@ _build_changelog() {
 
   echo
 
-  for line in "${data[@]}"; do
-    pullRequestNumber=$(cut -f1 -d' ' <<< ${line});
+  for pullRequestNumber in $(printf '%s\n' "${data[@]}" | awk '{ print $1 }' | sort -n); do
     echo "[#${pullRequestNumber}]: https://github.com/${repositoryName}/pull/${pullRequestNumber}"
   done
 }
