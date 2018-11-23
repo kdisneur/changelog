@@ -1,61 +1,97 @@
 # Changelog
 
-Generate a Changelog based on your Git history
+Build a changelog based on Git and a Tracker.
 
-Example of output from [Bamboo SMTP](https://github.com/fewlinesco/bamboo_smtp):
+The command line takes two arguments:
 
-```
-- Fix failing HexDoc redirection ([#79])
-- Add attachment support ([#35])
-- Apply rfc822_encode to headers(FROM, BCC, CC, TO) ([#75])
-- Make the hostname (FQDN) configurable ([#74])
-- Update Elixir, OTP and all deps to latest versions available ([#69])
+1. A reference to a git object we want to build the changelog from
+2. The name of the version
 
-[#35]: https://github.com/fewlinesco/bamboo_smtp/pull/35
-[#69]: https://github.com/fewlinesco/bamboo_smtp/pull/69
-[#74]: https://github.com/fewlinesco/bamboo_smtp/pull/74
-[#75]: https://github.com/fewlinesco/bamboo_smtp/pull/75
-[#79]: https://github.com/fewlinesco/bamboo_smtp/pull/79
-```
+```bash
+$ changelog v1.4.0 v1.5.0
+## v1.5.0 - 2018-11-23
 
-## Usage
+- Handle username and password required error ([#102])
+- Add authentication option ([#89])
 
-All the information should be available using the `-h` option.
-
-```
-$> changelog -h
-Usage: changelog [-d|-h] <from-ref> [<repository-name [<end-ref>]]
-
-Flags:
-  -d           Debug mode
-  -h           Display this usage text
-
-Environment Variables:
-  CHANGELOG_CONFIG_PATH:    Path where all the configuration is stored. Configuration contains
-                            only one key for the moment: `github.token = <token>`
-                            Currently set to "/Users/kdisneur/.config/changelog"
-  CHANGELOG_DEFAULT_BRANCH: Default Git reference used to build the Changelog.
-
-Arguments:
-  from-ref:         Git references used as a starting point to build the Changelog
-  repository-name:  By default, tries to get the remote url defined in Git config
-  end-ref:          Reference branches to find merges from. If not set, it fallbacks
-                    to the CHANGELOG_DEFAULT_BRANCH environment variables and, as a
-                    last fallback, "develop"
-
-Example:
-  # Build a changelog with every merged Pull Request from v1.5.0
-  changelog v1.5.0
-  # Build a changelog with every merged Pull Request from v1.5.0 fetching Pull Requests from
-  # johndoe/acme_corp
-  changelog v1.5.0 johndoe/acme_corp
-  # Build a changelog with every merged Pull Request from v1.5.0 fetching Pull Requests from
-  # johndoe/acme_corp and using master as a reference branch
-  changelog v1.5.0 johndoe/acme_corp master```
+[#102]: https://github.com/fewlinesco/bamboo_smtp/pull/102
+[#89]: https://github.com/fewlinesco/bamboo_smtp/pull/89
 ```
 
-## Tests
+## Installation
 
 ```
-bats test
+brew install kdisneur/homebrew-formulae/changelog
+```
+
+## Configuration Option
+
+### File
+
+A `toml` file can be created at `~/.config/changelog.toml`
+
+Here the definition:
+```toml
+[general]
+mergeStrategy = "squash" # the default strategy to use when parsing a git history
+                         # it can be either: squash or merge. By default: squash
+
+baseBranch = "develop" # the main git branch you merge to. By default: `master`
+
+[github]
+token = "<api-key>" # a personal access-token to fetch pull-requests description.
+
+[[repository]]
+name = "kdisneur/changelog" # name of the repository. By default it extracts the
+                            # information from the git remote
+
+mergeStrategy = "squash" # the default strategy to use when parsing a git history
+                         # it can be either: squash or merge. By default: squash
+                         # it overrides the [general] section
+
+baseBranch = "master" # the main git branch you merge to. It overrides the [general]
+                      # section
+
+[[repository]]
+name = "fewlinesco/bamboo_smtp"
+mergeStrategy = "merge"
+baseBranch = "develop"
+```
+
+### Command Line
+
+The command line have some options:
+
+- `--branch`: name of the base branch. It overrides anything defined in the `file`
+  section.
+- `--change-dir` path to the local git repository if the command is run outside the
+  repository root path.
+- `--config` path to a configuration file if different from `~/.config/changelog`
+- `--repository` name of the GitHub repository. By default, it tries to read from the
+  git remote
+- `--strategy` the default strategy to use when parsing a git history. It can be
+  either: squash or merge and overrides anything defined in the `file` section.
+
+## Development
+
+### Installation
+
+```bash
+go mod download
+go build
+```
+
+### Testing
+
+```bash
+go test ./...
+```
+
+### Deployment
+
+> :warning: Make sure the last version has been build before running the command.
+> And don't forget to bump the VERSION file.
+
+```bash
+./scripts/release.sh
 ```
