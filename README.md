@@ -63,14 +63,14 @@ baseBranch = "develop"
 The command line have some options:
 
 - `--branch`: name of the base branch. It overrides anything defined in the `file`
-  section.
+  section
 - `--change-dir` path to the local git repository if the command is run outside the
-  repository root path.
-- `--config` path to a configuration file if different from `~/.config/changelog`
+  repository root path
+- `--config` path to a configuration file if different from `~/.config/changelog.toml`
 - `--repository` name of the GitHub repository. By default, it tries to read from the
   git remote
 - `--strategy` the default strategy to use when parsing a git history. It can be
-  either: squash or merge and overrides anything defined in the `file` section.
+  either: squash or merge and overrides anything defined in the `file` section
 
 ## Development
 
