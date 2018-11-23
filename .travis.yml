@@ -1,0 +1,13 @@
+language: go
+go:
+  - "1.11.1"
+go_import_path: "github.com/kdisneur/changelog"
+install: true
+cache:
+  directories:
+    - "vendor"
+env:
+  - "GO111MODULE=on"
+script:
+  - "go mod vendor"
+  - "go test -v -mod=vendor ./..."

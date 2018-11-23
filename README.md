@@ -1,5 +1,7 @@
 # Changelog
 
+[![Build Status](https://travis-ci.org/kdisneur/changelog.svg?branch=master)](https://travis-ci.org/kdisneur/changelog)
+
 Build a changelog based on Git and a Tracker.
 
 The command line takes two arguments:

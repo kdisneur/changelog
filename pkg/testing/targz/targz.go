@@ -55,7 +55,7 @@ func Untar(repositoryName string) (string, func(), error) {
 			}
 
 		case tar.TypeReg:
-			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, 0644)
 			if err != nil {
 				return "", nil, err
 			}
